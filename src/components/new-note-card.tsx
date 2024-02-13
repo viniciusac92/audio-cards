@@ -7,6 +7,8 @@ interface NewNoteCardProps {
     onNoteCreated: (content: string) => void
 }
 
+let speechRecognition: SpeechRecognition | null = null
+
 export function NewNoteCard(props: NewNoteCardProps) {
     const [shouldShowOnboarding, setShouldShowOnboarding] = useState(true)
     const [content, setContent] = useState('')
@@ -42,19 +44,23 @@ export function NewNoteCard(props: NewNoteCardProps) {
     }
 
     function handleStartRecording() {
-        setIsRecording(true)
-
+        /** verifica se as propriedades SpeechRecognition e webkitSpeechRecognition existem no 
+        objeto window, referente ao browser que esta rodando a aplicacao */
         const isSpeechRecognitionAPIAvailable =
             'SpeechRecognition' in window || 'webkitSpeechRecognition' in window
 
         if (!isSpeechRecognitionAPIAvailable) {
             alert('navegador sem suporte para gravação')
+            return
         }
+
+        setIsRecording(true)
+        setShouldShowOnboarding(false)
 
         const SpeechRecognitionAPI =
             window.SpeechRecognition || window.webkitSpeechRecognition
 
-        const speechRecognition = new SpeechRecognitionAPI()
+        speechRecognition = new SpeechRecognitionAPI()
 
         speechRecognition.lang = 'pt-BR'
         speechRecognition.continuous = true // não pare de gravar
@@ -62,12 +68,29 @@ export function NewNoteCard(props: NewNoteCardProps) {
         speechRecognition.interimResults = true // a api deve continuar trazendo resultados conforme será falado
 
         speechRecognition.onresult = (event) => {
-            console.log(event.results)
+            const transcription = Array.from(event.results).reduce(
+                (text, result) => {
+                    // text é a string q inicia, e result é cada item do result
+                    return text.concat(result[0].transcript)
+                },
+                'fala do usuario >>> ' // valor que inicia o reduce, nesse caso uma string
+            )
+
+            setContent(transcription) // atualiza o conteudo da textarea com a transcricao
         }
+        speechRecognition.onerror = (event) => {
+            console.error(event)
+        }
+
+        speechRecognition.start()
     }
 
     function handleStopRecording() {
         setIsRecording(false)
+
+        if (speechRecognition !== null) {
+            speechRecognition.stop()
+        }
     }
 
     return (
@@ -83,7 +106,7 @@ export function NewNoteCard(props: NewNoteCardProps) {
             </Dialog.Trigger>
             <Dialog.Portal>
                 <Dialog.Overlay className="inset-0 fixed bg-black/50" />
-                <Dialog.Content className="fixed overflow-hidden left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[640px] w-full h-[60vh] bg-slate-700 rounded-md flex flex-col outline-none">
+                <Dialog.Content className="fixed overflow-hidden inset-0 md:inset-0 md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-[640px] w-full md:h-[60vh] bg-slate-700 md:rounded-md flex flex-col outline-none">
                     <Dialog.Close className="absolute right-0 top-0 bg-slate-800 p-1.5 text-slate-400 hover:text-slate-100">
                         <X className="w-5 h-5" />
                     </Dialog.Close>
