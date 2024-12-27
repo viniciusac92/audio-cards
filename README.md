@@ -1,4 +1,4 @@
-# Projeto React - NLW Fev/2024
+# Projeto Audio Cards - ReactTS
 
 [![My Skills](https://skills.thijs.gg/icons?i=react,ts,tailwind)](https://skills.thijs.gg)
 
